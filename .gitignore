@@ -9,6 +9,7 @@ __pycache__
 /*.tmp
 /Twitch Drops Miner
 # Dev files
+*.new
 /env
 /cache
 /*.jar
@@ -16,20 +17,12 @@ log.txt
 /dump.dat
 /lock.file
 settings.json
-
-logs/
-.claude/
-data/
-.ruff_cache/
-.vscode/
-.idea/
-*.iml
-*.log
-*.egg-info/
-.coverage
-
-artifacts/
-.env
-
-# Private development plans, notes, and local verification records
-/.dev-notes/
+/lang/English.json
+# AppImage
+/AppDir
+/appimage-builder
+/appimage-build
+/*.AppImage
+/*.AppImage.zsync
+.DS_Store
+*.app
