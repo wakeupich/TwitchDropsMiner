@@ -1257,21 +1257,35 @@ class InventoryOverview:
             filter_frame, text=_("gui", "inventory", "filter", "show"), padding=(0, 0, 10, 0)
         ).grid(column=0, row=0)
 
+        def toggle_filter(name: str):
+            var = self._filters[name]
+            var.set(0 if var.get() else 1)
+            self.refresh()
+
         filter_keys = ("not_linked", "upcoming", "expired", "excluded", "finished")
-        for icolumn, key in enumerate(filter_keys, start=1):
+        icolumn = 0
+        for key in filter_keys:
             chk = ttk.Checkbutton(
                 filter_frame,
-                text=_("gui", "inventory", "filter", key),
                 variable=self._filters[key],
                 command=self.refresh,
-                padding=(0, 0, LABEL_SPACING, 0),
             )
-            chk.grid(column=icolumn, row=0)
+            chk.grid(column=(icolumn := icolumn + 1), row=0)
+
+            lbl = ttk.Label(
+                filter_frame,
+                text=_("gui", "inventory", "filter", key),
+                padding=(0, 0, LABEL_SPACING, 0),
+                cursor="hand2",
+            )
+            lbl.grid(column=(icolumn := icolumn + 1), row=0)
+            lbl.bind("<Button-1>", lambda event, k=key: toggle_filter(k))
+
             self._filters[key].trace_add("write", lambda *_, r=self.refresh: r())
 
         ttk.Button(
             filter_frame, text=_("gui", "inventory", "filter", "refresh"), command=self.refresh
-        ).grid(column=len(filter_keys) + 1, row=0)
+        ).grid(column=(icolumn := icolumn + 1), row=0)
         # Inventory view
         self._canvas = tk.Canvas(master, scrollregion=(0, 0, 0, 0))
         self._canvas.grid(column=0, row=1, sticky="nsew")
@@ -1304,8 +1318,9 @@ class InventoryOverview:
         excluded = bool(self._filters["excluded"].get())
         upcoming = bool(self._filters["upcoming"].get())
         finished = bool(self._filters["finished"].get())
+        priority_only = self._settings.priority_mode is PriorityMode.PRIORITY_ONLY
 
-        # 1. Skip campaigns without rewards (e.g. sub-only)
+        # 1. Skip sub-only campaigns (0 required minutes)
         if campaign.required_minutes <= 0:
             frame.grid_remove()
             return
@@ -1328,9 +1343,11 @@ class InventoryOverview:
             frame.grid_remove()
             return
 
-        # 5. Excluded status: if game is in user's exclude list, show only when "excluded" filter is checked
-        is_game_excluded = campaign.game.name in self._settings.exclude
-        if not excluded and is_game_excluded:
+        # 5. Excluded / Priority status:
+        # If the game is in user's exclude list, or priority_only mode is active and game is not in priority list
+        is_not_priority = priority_only and (campaign.game.name not in self._settings.priority)
+        is_in_exclude = campaign.game.name in self._settings.exclude
+        if not excluded and (is_in_exclude or is_not_priority):
             frame.grid_remove()
             return
 
